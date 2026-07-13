@@ -181,7 +181,7 @@ python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
 
 ## 6. Export Road LTS Composition
 
-Exports per-road LTS breakdown for mechanism analysis: total length, car/bike/safe-bike kilometres, and dual PageRank for each named road.
+Exports per-road LTS breakdown for mechanism analysis: total length, car/bike/safe-bike kilometres, and PageRank for each named road.
 
 ```shell
 python export_road_lts_composition.py -n bolt://localhost:7687 -u neo4j -p password \
