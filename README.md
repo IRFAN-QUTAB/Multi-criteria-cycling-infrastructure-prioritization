@@ -15,7 +15,7 @@ Edit your DBMS settings and add the following lines after the Other Neo4j system
 
 ```
 apoc.import.file.enabled=true
-dbms.security.procedures.unrestricted=jwt.security.*,apoc.*,gds.*
+dbms.security.procedures.unrestricted=jwt.security.*,apoc.*,gds.*,spatial.*
 ```
 
 ### Python Dependencies
