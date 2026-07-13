@@ -1,6 +1,6 @@
 # Coverage Is Not Resilience: Asymmetric Vulnerability of Multiplex Car–Bicycle Networks Under Targeted Road Disruptions
 
-A Python + Neo4j framework for quantifying how car and bicycle networks respond differently to road closures. It constructs a multiplex urban road graph from OpenStreetMap with Level of Traffic Stress (LTS) classification, computes dual-graph centrality, simulates targeted road disruptions, and measures modal accessibility loss across origin–destination pairs to essential services. Applied to three Italian cities (Modena, Ferrara, Pesaro) for a Q1 journal paper.
+A Python + Neo4j framework for quantifying how car and bicycle networks respond differently to road closures. It constructs a multiplex urban road graph from OpenStreetMap with Level of Traffic Stress (LTS) classification, computes dual-graph centrality, simulates targeted road disruptions, and measures modal accessibility loss across origin–destination pairs to essential services. Applied to three Italian cities (Modena, Ferrara, Pesaro).
 
 ## Requirements
 
@@ -21,7 +21,7 @@ dbms.security.procedures.unrestricted=jwt.security.*,apoc.*,gds.*
 ### Python Dependencies
 
 ```shell
-pip install osmnx overpy neo4j pandas numpy scipy matplotlib seaborn shapefile openpyxl pyproj
+pip install osmnx overpy neo4j pandas numpy scipy matplotlib seaborn pyshp openpyxl pyproj
 ```
 
 ---
@@ -31,14 +31,13 @@ pip install osmnx overpy neo4j pandas numpy scipy matplotlib seaborn shapefile o
 The framework follows a sequential pipeline. Each step updates the Neo4j database for the next step.
 
 ```
-1. Create Road Network Graph     →  Multi-modal graph (car + bike + LTS) in Neo4j
-2. Add POIs to Graph             →  NEAR_CAR / NEAR_BIKE proximity edges
-3. Create Dual Graph             →  RoadOsm nodes + CONNECTED edges
-4. Compute Centrality            →  PageRank, Betweenness, Degree on dual graph
-5. Build Population CSVs         →  Census centroid lat/lon/population (optional)
-6. Vulnerability Analysis        →  One-by-one + simultaneous + null model results
-7. Generate Paper Figures        →  Publication-quality PDF/PNG figures + LaTeX tables
-8. Export for QGIS               →  Spatial CSVs for map visualization
+1. Create Road Network Graph       →  Multi-modal graph (car + bike + LTS) in Neo4j
+2. Add POIs to Graph               →  NEAR_CAR / NEAR_BIKE proximity edges
+3. Create Dual Graph               →  RoadOsm nodes + CONNECTED edges
+4. Compute Centrality              →  PageRank, Betweenness, Degree on dual graph
+5. Vulnerability Analysis          →  One-by-one + simultaneous + null model results
+6. Export Road LTS Composition     →  Per-road LTS breakdown CSV
+7. Export for QGIS                 →  Spatial CSVs for map visualization
 ```
 
 ---
@@ -124,41 +123,9 @@ python compute_centrality.py -n bolt://localhost:7687 -u neo4j -p password
 
 ---
 
-## 5. Build Population CSVs (Optional)
-
-Extracts census-section centroids from ISTAT Basi Territoriali 2021 shapefiles, projects UTM 32N to WGS84, and cross-validates population counts against the census XLSX.
-
-```shell
-python build_population_csvs.py
-```
-
-**Output:** `<city>_population.csv` with columns `lat, lon, population, sez21_id`. Used for population-weighted OD pair sampling via the `--population-csv` flag in step 6.
-
-**Note:** Requires ISTAT shapefiles and census XLSX files in a `Shape file _ census/` folder. Paths are hardcoded and must be updated for your environment.
-
----
-
-## 6. Vulnerability Analysis
+## 5. Vulnerability Analysis
 
 The core analysis. Selects residential-to-POI origin–destination pairs, ranks roads by dual PageRank, and simulates targeted road closures measuring accessibility loss across three routing modes: car (`driveable=true`), bike safe (`bike_allowed=true AND lts≤2`), and bike all (`bike_allowed=true`).
-
-### Full Pipeline (Centrality + Vulnerability)
-
-```shell
-python run_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
-    --city modena --output results --all \
-    --od-pairs 200 --top-pct 50 --closure-pct 0.25
-```
-
-### Vulnerability Only (Centrality Must Exist)
-
-```shell
-python run_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
-    --city modena --output results --vulnerability \
-    --od-pairs 200 --closure-pct 0.25
-```
-
-### Direct Invocation with Full Options
 
 ```shell
 python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
@@ -212,6 +179,25 @@ python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
 
 ---
 
+## 6. Export Road LTS Composition
+
+Exports per-road LTS breakdown for mechanism analysis: total length, car/bike/safe-bike kilometres, and dual PageRank for each named road.
+
+```shell
+python export_road_lts_composition.py -n bolt://localhost:7687 -u neo4j -p password \
+    --city modena
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `-n` | Neo4j bolt URL |
+| `-u` | Neo4j username |
+| `-p` | Neo4j password |
+| `--city` | City name |
+
+**Output:** `<city>_road_lts_composition.csv` with columns `road_name, segments, total_m, car_m, bike_m, bike_safe_m, dual_pagerank`.
+
+---
 
 ## 7. Export for QGIS
 
@@ -231,6 +217,7 @@ python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password \
 | `--dual` | Export dual graph nodes |
 | `--pois` | Export POI locations |
 | `--scenario` | Export a specific disruption scenario |
+
 
 ---
 
@@ -257,8 +244,7 @@ python "Create Graph.py" -x 43.910156 -y 12.913389 -d 5 \
 Full vulnerability analysis for all three:
 ```shell
 for city in modena ferrara pesaro; do
-    python run_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
-        --city $city --output results --all --od-pairs 200
+    python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
+        --city $city --od-pairs 200 --top-pct 50 --closure-pct 0.25
 done
-python plot_paper_figures.py
 ```
