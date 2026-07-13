@@ -119,13 +119,13 @@ python compute_centrality.py -n bolt://localhost:7687 -u neo4j -p password
 | `-p` | Neo4j password |
 | `--top` | Number of top roads to display (default: 20) |
 
-**Computed metrics:** `dual_pagerank`, `dual_betweenness`, `dual_degree` on `RoadOsm` nodes. Junction-level `bc` (betweenness centrality) on `RoadJunction` nodes for percentage-based closure targeting.
+**Computed metrics:** `Pagerank`, `Betweenness`, `Degree` on `RoadOsm` nodes. Junction-level `bc` (betweenness centrality) on `RoadJunction` nodes for percentage-based closure targeting.
 
 ---
 
 ## 5. Vulnerability Analysis
 
-The core analysis. Selects residential-to-POI origin–destination pairs, ranks roads by dual PageRank, and simulates targeted road closures measuring accessibility loss across three routing modes: car (`driveable=true`), bike safe (`bike_allowed=true AND lts≤2`), and bike all (`bike_allowed=true`).
+The core analysis. Selects residential-to-POI origin–destination pairs, ranks roads by PageRank, and simulates targeted road closures measuring accessibility loss across three routing modes: car (`driveable=true`), bike safe (`bike_allowed=true AND lts≤2`), and bike all (`bike_allowed=true`).
 
 ```shell
 python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
