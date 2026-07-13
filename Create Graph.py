@@ -8,7 +8,6 @@ import requests
 
 # ============================================================================
 #  CLASSIFICATION HELPERS  (bicycle class + LTS, based on Vierø & Szell 2025,
-#  Table 1, adapted to the Italian context)
 # ============================================================================
 
 # Italian default speed limits (km/h) used when OSM has no maxspeed tag.
