@@ -148,7 +148,7 @@ python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
 | `--poi-candidates` | Nearest-POI candidates resolved by network distance (default: 3) |
 | `--null-iterations` | Random null-model iterations per k, 0 disables (default: 5) |
 | `--seed` | Random seed for reproducibility (default: 42) |
-| `--sensitivity` | Auto-run 10%, 25%, 50% closure and save comparison |
+| `--sensitivity` | 10%, 25%, 50% closure and save comparison |
 
 **Analysis components:**
 
