@@ -212,32 +212,8 @@ python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
 
 ---
 
-## 7. Generate Paper Figures and Tables
 
-Produces publication-quality figures (300 dpi, serif fonts, Okabe–Ito colorblind-safe palette) and LaTeX tables from the results of all three cities.
-
-```shell
-python plot_paper_figures.py
-```
-
-**Note:** City result directories and file prefixes are hardcoded in the script. Update `CITY_DIRS` and `CITY_PREFIX` if your filenames differ.
-
-**Output:**
-
-| File | Description |
-|------|-------------|
-| `figures/fig1_percolation_detour.pdf` | Adjusted detour ratio vs. k (targeted + random null) |
-| `figures/fig2_percolation_unreachable.pdf` | Unreachable OD pairs (%) vs. k |
-| `figures/fig3_baseline_accessibility.pdf` | Baseline reachability per mode with BIAI |
-| `figures/fig4_compensation.pdf` | Compensation outcome + bike-only vulnerable count |
-| `figures/fig5_coverage_independence.pdf` | BIAI vs. network independence scatter |
-| `tables/tab1_network_stats.tex` | Network characteristics and baseline accessibility |
-| `tables/tab2_priority_roads.tex` | Top-5 investment-priority roads per city |
-| `tables/tab3_targeted_random.tex` | Targeted vs. random closure comparison |
-
----
-
-## 8. Export for QGIS
+## 7. Export for QGIS
 
 Exports road-level and OD-level data as georeferenced CSVs for spatial visualization in QGIS.
 
@@ -255,69 +231,6 @@ python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password \
 | `--dual` | Export dual graph nodes |
 | `--pois` | Export POI locations |
 | `--scenario` | Export a specific disruption scenario |
-
----
-
-## Supplementary Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `export_road_lts_composition.py` | Per-road LTS composition (total/car/bike/safe km + PageRank) |
-| `plot_results.py` | General-purpose result plotting (single city or cross-city) |
-| `disruption_engine.py` | Low-level disruption engine (flag/reset edges) |
-| `disruption_scenarios.py` | Scenario definitions for disruption experiments |
-
----
-
-## Repository Structure
-
-```
-├── README.md
-├── requirements.txt
-│
-├── pipeline/
-│   ├── Create Graph.py                  # Step 1: OSM → Neo4j with LTS
-│   ├── Import amenity.py                # Step 2: POI integration
-│   ├── Dual Graph (Named-Road).py       # Step 3: Dual graph construction
-│   └── compute_centrality.py            # Step 4: Centrality metrics
-│
-├── analysis/
-│   ├── vulnerability_analysis.py        # Core vulnerability analysis engine
-│   ├── run_analysis.py                  # CLI orchestrator (centrality + vulnerability)
-│   ├── disruption_engine.py             # Edge disruption utilities
-│   └── disruption_scenarios.py          # Scenario definitions
-│
-├── visualization/
-│   ├── plot_paper_figures.py            # Publication figures + LaTeX tables
-│   └── plot_results.py                  # General plotting utilities
-│
-├── data/
-│   ├── build_population_csvs.py         # ISTAT census → population CSVs
-│   ├── export_road_lts_composition.py   # Per-road LTS breakdown
-│   └── export_qgis.py                   # QGIS-ready spatial CSVs
-│
-├── results/
-│   ├── modena/                          # Modena analysis outputs
-│   ├── ferrara/                         # Ferrara analysis outputs
-│   └── pesaro/                          # Pesaro analysis outputs
-│
-├── figures/                             # Generated publication figures (PDF + PNG)
-├── tables/                              # Generated LaTeX tables
-│
-├── sensitivity/
-│   ├── modena_10pct/                    # Sensitivity: 10% closure
-│   └── modena_50pct/                    # Sensitivity: 50% closure
-│
-├── lts_runs/                            # Robustness: LTS-weighted impedance
-│   ├── modena/
-│   ├── ferrara/
-│   └── pesaro/
-│
-└── qgis_exports/                        # Spatial data for QGIS maps
-    ├── modena_road_priority.csv
-    ├── modena_od_vulnerability_points.csv
-    └── ...
-```
 
 ---
 
