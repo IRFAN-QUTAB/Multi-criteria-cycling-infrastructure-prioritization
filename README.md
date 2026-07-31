@@ -153,7 +153,7 @@ python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
 **Analysis components:**
 
 - **One-by-one closure:** Each top road closed individually (25% of segments by junction betweenness). Measures detour ratio, POIs lost, WCC fragmentation, path overlap, compensation category, MID, and investment priority score.
-- **Simultaneous closure:** Top k roads closed together (k = 10, 20, 30, 50, 70, 100). Percolation-style analysis.
+- **Simultaneous closure:** Top k roads closed together (k = 10, 20, 30, 50, 70, 100).
 - **Null model:** k random roads closed (5 iterations) for targeted vs. random comparison.
 - **Per-OD vulnerability:** Tracks which OD pairs are most frequently affected across all closures.
 
