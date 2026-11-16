@@ -1,29 +1,3 @@
-"""
-mcdm_methods.py - weighting, aggregation and sensitivity methods of the MCDM
-model, used by mcdm.py.
-
-    weights          CRITIC, Entropy, CRITIC-Entropy, Equal
-    core methods     NR-TOPSIS, VIKOR, PROMETHEE II -> consensus ranking
-    comparison       TOPSIS, WSM (SAW), EDAS, MABAC, MARCOS
-    analyses         rank similarity (Spearman, Kendall, WS coefficient,
-                     Kendall's W), weight scenarios, one-at-a-time weight
-                     changes, criteria groups, rank reversal, method
-                     parameters, SMAA-2, criteria contribution, benchmark
-                     comparison
-
-Method references:
-    NR-TOPSIS     Yang (2020); as applied in Li et al. (2023, ESWA)
-    TOPSIS        Hwang & Yoon (1981), vector normalisation
-    VIKOR         Opricovic & Tzeng (2004)
-    PROMETHEE II  Brans & Vincke (1985), Gaussian preference function
-    WSM / SAW     Fishburn (1967)
-    EDAS          Keshavarz Ghorabaee et al. (2015)
-    MABAC         Pamucar & Cirovic (2015)
-    MARCOS        Stevic et al. (2020)
-    CRITIC        Diakoulaki, Mavrotas & Papayannakis (1995)
-    WS coeff.     Salabun & Urbaniak (2020)
-    SMAA-2        Lahdelma & Salminen (2001)
-"""
 
 import os
 
