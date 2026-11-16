@@ -1,22 +1,3 @@
-"""
-Travel demand: population-weighted origins, essential-service destinations,
-and the access node of every origin and destination in each layer.
-
-  * Origins: all residential junctions of the study area. Each census
-    section spreads its residents equally over the residential junctions
-    for which it is the nearest section; a section with no such junction
-    gives its residents to its nearest junction, so the weights add up to
-    the census population.
-  * Destinations: the nearest essential service by car network distance,
-    chosen among the three nearest services by straight-line distance.
-    Services mapped as polygons are located by their member nodes.
-  * The OD pairs are split at random into set A (criteria) and set B
-    (held out for validation).
-  * Access: an origin or a service enters each layer at the nearest junction
-    of that layer within 100 m, preferring junctions of the layer's main
-    component; "legacy" access uses the same junction for all layers.
-"""
-
 import csv
 
 import numpy as np
