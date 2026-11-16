@@ -1,19 +1,3 @@
-"""
-compute_centrality.py - Real centrality computation via Neo4j GDS.
-
-Computes on projected graphs (car subgraph, bike subgraph):
-  - Betweenness Centrality (Brandes algorithm)
-  - Harmonic Closeness Centrality
-  - Degree Centrality
-  - PageRank
-
-Writes scores back to RoadJunction nodes, then aggregates to RoadOsm (road level).
-
-Usage:
-  python compute_centrality.py -n bolt://localhost:7687 -u neo4j -p password
-  python compute_centrality.py -n bolt://localhost:7687 -u neo4j -p password --top 30
-"""
-
 import argparse
 import time
 from neo4j import GraphDatabase
