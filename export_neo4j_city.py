@@ -1,19 +1,4 @@
-"""
-export_neo4j_city.py - read-only export of a city graph from Neo4j.
 
-Stores every node and relationship with all properties, so that the
-simulation, the MCDM analysis and the validation run offline.
-
-    python export_neo4j_city.py --city modena -n bolt://localhost:7687 -u neo4j -p <password>
-
-Optional: --database <name> if the city is not in the default database.
-
-Output: graph_exports/<city>/
-    nodes.jsonl.gz   one JSON object per node  {id, eid, labels, p}
-    rels.jsonl.gz    one JSON object per rel   {id, type, s, t, p}
-    manifest.json    counts, property keys, versions, checks, sha256
-    export_log.txt   log of the run
-"""
 
 import argparse
 import datetime as _dt
