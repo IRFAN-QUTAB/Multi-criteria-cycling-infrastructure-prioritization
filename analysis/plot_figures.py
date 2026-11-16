@@ -1,22 +1,3 @@
-"""
-plot_figures.py - figures of the paper from outputs/.
-
-    fig1_asymmetry            targeted vs random simultaneous closures
-    fig4_compensation         compensation classes of single-road closures
-    fig5_coverage_independence coverage, protected infrastructure, overlap
-    figM1_weights             criteria weights
-    figM2_rank_similarity     similarity of the eight MCDM methods
-    figM4_weight_scenarios    30 weight scenarios, consensus top-10
-    figM6_criteria_contribution
-    figM7_rank_reversal       fixed vs re-estimated weights and bounds
-    figM8_smaa_NR_TOPSIS      SMAA-2 rank acceptability
-    figM9_consensus_top10_ranks
-    figM10_validation_topk_closures  out-of-sample validation (set B)
-    figM11_redundancy         bypass (redundancy) and coverage experiments
-
-Usage: python analysis/plot_figures.py [--fig <folder>]
-"""
-
 import argparse
 import json
 import os
