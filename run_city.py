@@ -1,26 +1,4 @@
-"""
-run_city.py - disruption simulation of one city.
 
-    python run_city.py --city modena -p <neo4j password>
-
-Stages:
-  export   read-only export of the Neo4j graph (export_neo4j_city.py)
-  prepare  OD pairs (all residential origins, population-weighted, split
-           into sets A and B), service access, alternatives
-  single   single-road closures of all alternatives, 9 set-ups:
-             main          25% closure depth, all OD pairs
-             depth10, depth50, depth100   closure depth
-             cost_lts      stress-weighted cycling cost
-             lts_stored    LTS as stored in Neo4j (without sharrow rule)
-             lts_zone30    30 km/h default on residential streets
-             access_legacy same access junction for all layers
-             dest_layer    each layer to its own nearest service
-  asym     simultaneous closures of the top-k roads by PageRank and of
-           random roads (two pools), k = 5, 10, 20, 30, 50, 70, 100
-
-Input:   data/<city>_population.csv (lat, lon, population of census sections)
-Results: results/<city>/
-"""
 
 import argparse
 import csv
