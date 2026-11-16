@@ -1,21 +1,3 @@
-"""
-sim_checks.py - simulation analyses that need the routing engine
-(run after mcdm.py):
-
-  stats     network statistics, coverage, connectivity, route overlap
-  asym      targeted vs random simultaneous closures; trips inside the
-            closure excluded; penalty sensitivity
-  validate  top-k roads of each ranking closed together, measured on the
-            held-out OD set B, k = 5..50, against random selections, with
-            paired bootstrap confidence intervals
-  invest    the top-k roads of each ranking are upgraded to LTS 1 and the
-            gain in low-stress access is measured
-  bypass    a parallel LTS 1 route is added along each selected road, the
-            road is closed, and the avoided low-stress harm is measured
-
-Usage: python analysis/sim_checks.py --city modena
-"""
-
 import argparse
 import json
 import os
