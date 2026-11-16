@@ -1,29 +1,3 @@
-"""
-mcdm.py - MCDM model on the simulation outputs of run_city.py.
-
-Criteria (low-stress cycling layer, OD set A):
-    C1 dual PageRank of the road
-    C2 excess detour of the low-stress trips that remain possible (mean r - 1)
-    C3 share of low-stress trips that lose their service
-    C4 population share cut off from the low-stress main component
-       (junctions isolated by the closure excluded)
-    C5 compensation failure: max(0, H_safe - H_car), H = adjusted detour - 1
-Trips that start or end inside the closure are excluded.
-
-NR-TOPSIS bounds: [0, max] of the candidate set for C2-C5, observed range for
-C1, fixed once. Weighting and aggregation methods are imported from
-mcdm_methods.py.
-
-Analyses: weights, rankings of eight methods and the consensus, rank
-similarity, weighting schemes, weight scenarios, criteria groups and
-contribution, rank reversal (fixed and re-estimated weights and bounds),
-method parameters, SMAA-2, benchmarks, Wilcoxon tests, and robustness to
-the C5 form, the cycling layers, the exclusion rule, the simulation set-up,
-the OD pairs (set B, five disjoint subsets of set A) and boundary roads.
-
-Usage:  python analysis/mcdm.py [--cities modena ferrara pesaro]
-Output: outputs/<city>/*.csv, outputs/summary_*.csv
-"""
 
 import argparse
 import importlib.util
