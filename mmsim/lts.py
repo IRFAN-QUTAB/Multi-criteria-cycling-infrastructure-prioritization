@@ -1,24 +1,3 @@
-"""
-Level of traffic stress (LTS) on the exported ROUTE edges.
-
-The functions reproduce get_bicycle_class / parse_speed / parse_lanes /
-get_lts of "Create Graph.py" exactly, with switches for the variants used in
-the sensitivity analysis:
-
-  "stored"       the LTS stored in Neo4j (no recomputation)
-  "orig"         recomputed with the original rules (must equal "stored";
-                 used as a fidelity check)
-  "main"         original rules, except that shared-lane markings
-                 (cycleway=shared_lane / shared, "sharrows") are treated as
-                 mixed traffic (class 3). Vierø & Szell (2025) define class 2
-                 as bicycle lanes and shared bicycle-bus lanes without
-                 physical separation; sharrows are not lanes. share_busway
-                 therefore stays in class 2.
-  "zone30"       as "main", but residential and unclassified streets without
-                 a speed tag get 30 km/h instead of 50 km/h (sensitivity to
-                 speed imputation, Italian Zona 30).
-"""
-
 import ast
 import re
 
