@@ -1,22 +1,3 @@
-"""
-export_qgis.py - Export disrupted/undisrupted graph edges as CSV for QGIS maps.
-
-Generates spatial CSV files with WKT geometry that QGIS can import directly.
-Each row is one ROUTE edge with its disruption status, mode info, and LTS.
-
-Usage:
-  # Export current state (after running a disruption scenario):
-  python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password --city modena
-
-  # Export with a specific scenario applied:
-  python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password --city modena --scenario flooding
-
-  # Export dual graph (RoadOsm connections):
-  python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password --city modena --dual
-
-  # Export baseline (no disruption, just network structure):
-  python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password --city modena --baseline
-"""
 
 import argparse
 import csv
