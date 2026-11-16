@@ -1,19 +1,4 @@
-"""
-export_road_lts_composition.py - Per-road LTS composition for the
-mechanism analysis (finding 2: structural independence).
 
-For every named road, exports:
-  - total length (m) and segment count
-  - length that is driveable (car network)
-  - length that is bike-allowed
-  - length that is low-stress (bike_allowed AND lts <= 2)
-  - dual PageRank (centrality rank of the road)
-
-Usage (run once per city, with that city's DB active):
-  python export_road_lts_composition.py -n bolt://localhost:7687 \
-      -u neo4j -p PASSWORD --city modena
-Output: <city>_road_lts_composition.csv in the current folder.
-"""
 import argparse
 import csv
 from neo4j import GraphDatabase
