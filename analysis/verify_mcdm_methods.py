@@ -1,23 +1,3 @@
-"""
-verify_mcdm_methods.py - checks the implementations in mcdm_methods.py
-
-1. The heuristic IPS stored in the decision matrices equals
-       IPS = C1 * (C2 + C3 + C4) * (0.5 + C5)
-2. TOPSIS, VIKOR, PROMETHEE II, WSM, EDAS, MABAC, MARCOS, CRITIC and
-   Entropy weights agree with the independent reference library pymcdm
-   (Kizielewicz, Shekhovtsov & Salabun, 2023, SoftwareX) on random matrices
-   and on the real data. NR-TOPSIS matches its closed form (Li et al., 2023)
-   and does not reverse ranks when alternatives are deleted.
-3. WS coefficient agrees with pymcdm; Kendall's W equals 1 for identical
-   rankings and matches the closed form for two rankings
-   (W = (rho_S + 1) / 2 without ties).
-4. The PROMETHEE II flow shortcut equals plain pairwise loops for the
-   Gaussian and V-shape preference functions, and V-shape with p = range
-   reproduces the WSM ranking (reason why Gaussian is the default).
-
-Run:  python analysis/verify_mcdm_methods.py
-"""
-
 import os
 import sys
 
