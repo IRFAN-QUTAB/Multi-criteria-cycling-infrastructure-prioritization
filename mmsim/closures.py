@@ -1,4 +1,4 @@
-"""Closure scenarios as boolean masks over the city edges."""
+
 
 import numpy as np
 
