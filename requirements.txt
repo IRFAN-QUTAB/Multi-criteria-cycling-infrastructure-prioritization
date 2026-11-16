@@ -1,0 +1,9 @@
+osmnx
+overpy
+requests
+neo4j
+numpy
+pandas
+scipy
+matplotlib
+pymcdm
