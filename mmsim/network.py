@@ -1,19 +1,3 @@
-"""
-Routing core of the offline simulation (scipy.sparse.csgraph).
-
-A Core holds only numeric arrays (fast to pickle / load in worker processes):
-    n, u, v, length, driveable, bike_allowed, lts, pop
-A Layer is one mode layer of the multiplex graph; closures are boolean masks
-over the city edges, and a layer simply ignores its closed edges, exactly as
-the Neo4j projections ignored flagged edges.
-
-Shortest paths are computed from the destinations on the reversed graph, so
-that one Dijkstra run serves all origins of a destination. After a closure,
-only pairs whose baseline shortest path uses a closed edge are re-routed: a
-closure can only remove edges, so every other pair keeps its baseline cost
-exactly (this is exact, not an approximation).
-"""
-
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components, dijkstra
