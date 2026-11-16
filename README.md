@@ -1,8 +1,8 @@
-# Coverage Is Not Resilience: Simulation-Driven MCDM for Prioritizing Cycling Infrastructure in Multiplex Car–Bicycle Networks
+# A Simulation-Driven Multi-Criteria Framework for Prioritizing Low-Stress Cycling Infrastructure under Road Closures
 
-A Python + Neo4j framework that measures how car and bicycle networks respond differently to road closures and turns the simulated losses into a multi-criteria decision-making (MCDM) ranking of roads for parallel low-stress cycling infrastructure.
+A Python + Neo4j framework in which a disruption simulation quantifies the criteria of a multi-criteria decision-making (MCDM) model. It is applied to rank the roads of a city for parallel low-stress cycling routes.
 
-The framework builds a multiplex urban road graph from OpenStreetMap in which car and cycling layers share the same street edges and every cycling edge is graded by Level of Traffic Stress (LTS). It computes dual-graph centrality, closes roads one at a time and in groups, and measures accessibility to essential services by car, by bicycle on all permitted roads, and by bicycle on low-stress roads only. Five criteria derived from the simulation are weighted with CRITIC and aggregated by NR-TOPSIS, VIKOR, and PROMETHEE II into a consensus ranking, which is then tested through sensitivity, comparative, rank-reversal, and simulation-based validation. Applied to three Italian cities (Modena, Ferrara, Pesaro).
+The framework builds a multiplex urban road graph from OpenStreetMap. In this graph, the car and cycling layers share the same street edges, and every cycling edge is graded by Level of Traffic Stress (LTS). Each candidate road is closed one at a time and in groups. The simulation measures accessibility to essential services for all residential origins, weighted by census population, on three layers: car, cycling on all permitted roads, and cycling on low-stress roads only. Five criteria derived from the simulation are weighted with CRITIC and aggregated by NR-TOPSIS, VIKOR, and PROMETHEE II into a consensus ranking. The ranking is tested with sensitivity, comparative and rank-reversal analyses, out-of-sample simulated closures, and two intervention experiments (parallel bypass and road upgrade). The framework is applied to three Italian cities: Modena, Ferrara, and Pesaro.
 
 ## Requirements
 
@@ -10,8 +10,6 @@ The framework builds a multiplex urban road graph from OpenStreetMap in which ca
 - [Graph Data Science](https://neo4j.com/docs/graph-data-science/current/installation/) plugin (version 2.13+)
 - [APOC](https://neo4j.com/labs/apoc/) plugin
 - Python 3.8+
-
-Neo4j is needed for Steps 1–7 and for the simulation-based validation (Step 8c). The rest of the MCDM analysis (Steps 8a and 8b) runs on the result files only.
 
 ### Neo4j Configuration
 
@@ -32,28 +30,45 @@ pip install osmnx overpy neo4j pandas numpy scipy matplotlib seaborn pyshp openp
 
 ## Pipeline Overview
 
-The framework follows a sequential pipeline. Steps 1–4 build the graph in Neo4j, Step 5 runs the disruption simulation, and Step 8 builds and validates the MCDM ranking.
+```
+1. Create Road Network Graph     →  Multimodal graph (car + bike + LTS) in Neo4j
+2. Add POIs to Graph             →  Essential services linked to the network
+3. Create Dual Graph             →  RoadOsm nodes + CONNECTED edges
+4. Compute Centrality            →  PageRank, Betweenness, Degree on the dual graph
+5. Export the graph              →  One read-only export per city (last Neo4j step)
+6. Disruption simulation         →  Single-road closures (9 set-ups) + simultaneous closures
+7. MCDM analysis                 →  Criteria, weights, rankings, sensitivity, rank reversal, SMAA
+8. Simulation checks/validation  →  Network statistics, asymmetry, held-out closures, bypass, upgrade
+9. Figures                       →  All figures of the paper
+```
+
+Optional exports for mapping: Export Road LTS Composition, Export for QGIS (see the end of this file).
+
+Folder layout used by Steps 5–9:
 
 ```
-1. Create Road Network Graph       →  Multi-modal graph (car + bike + LTS) in Neo4j
-2. Add POIs to Graph               →  NEAR_CAR / NEAR_BIKE proximity edges
-3. Create Dual Graph               →  RoadOsm nodes + CONNECTED edges
-4. Compute Centrality              →  PageRank, Betweenness, Degree on dual graph
-5. Vulnerability Analysis          →  One-by-one + simultaneous + null model results
-6. Export Road LTS Composition     →  Per-road LTS breakdown CSV
-7. Export for QGIS                 →  Spatial CSVs for map visualization
-8. MCDM Framework (folder ESWA/)   →  Decision matrix, weights, rankings, sensitivity, validation
+ESWA/
+├── mcdm_analysis.py          # MCDM methods (imported by mcdm_v2.py)
+├── verify_mcdm_methods.py    # check of the methods against pymcdm
+└── rerun/
+    ├── export_neo4j_city.py
+    ├── run_city.py
+    ├── mmsim/                # simulation engine (graph, LTS, OD pairs, closures, routing)
+    ├── analysis/             # metrics.py, mcdm_v2.py, sim_checks.py, plot_v2.py
+    └── outputs_v2/<city>/    # results used in the paper
 ```
+
+The census population files `modena_population.csv`, `ferrara_population.csv`, and `pesaro_population.csv` (columns `lat, lon, population`, census-section centroids from the ISTAT 2021 census) must be in the project root.
 
 ---
 
 ## 1. Create Road Network Graph
 
-Downloads the OSM road network for a given center point and radius, classifies every edge for car driveability, bicycle access, and Level of Traffic Stress (LTS 1–4) following Vierø & Szell (2025), and writes the graph directly into Neo4j. Bus route detection adjusts LTS for shared corridors.
+Downloads the OSM road network for a given center point and radius. It classifies every edge for car driveability, bicycle access, and Level of Traffic Stress (LTS 1–4) following Vierø & Szell (2025), and writes the graph into Neo4j. Shared-lane markings (sharrows) are treated as mixed traffic, and a bus route raises the LTS by one level.
 
 ```shell
 python "Create Graph.py" -x 44.645885 -y 10.9255707 -d 5 \
-    -n bolt://localhost:7687 -u neo4j -p password -f modena
+    -n bolt://localhost:7687 -u neo4j -p <password> -f modena
 ```
 
 | Parameter | Description |
@@ -72,263 +87,203 @@ python "Create Graph.py" -x 44.645885 -y 10.9255707 -d 5 \
 
 ## 2. Add POIs to Graph
 
-Queries essential amenities (hospitals, schools, pharmacies, supermarkets, banks, etc.) from the Overpass API and links each POI to the nearest road junction via `NEAR_CAR` and `NEAR_BIKE` edges, enabling mode-specific OD pair resolution.
+Queries essential services (hospitals, clinics, doctors, pharmacies, schools, kindergartens, universities, police and fire stations, post offices, libraries, banks, supermarkets, convenience stores) from the Overpass API and links them to the road network.
 
 ```shell
-python "Import amenity.py" -n bolt://localhost:7687 -u neo4j -p password \
+python "Import POIs to the network.py" -n bolt://localhost:7687 -u neo4j -p <password> \
     -x 44.645885 -y 10.9255707 -d 5
 ```
-
-| Parameter | Description |
-|-----------|-------------|
-| `-n` | Neo4j bolt URL |
-| `-u` | Neo4j username |
-| `-p` | Neo4j password |
-| `-x`, `-y` | Center latitude and longitude |
-| `-d` | Radius in km |
-
-**Output:** POI nodes with `:Tag` labels and `NEAR_CAR` / `NEAR_BIKE` edges to the nearest driveable and bikeable junctions respectively.
 
 ---
 
 ## 3. Create Dual Graph
 
-Transforms the primal junction graph into a dual (named-road) graph where each named road becomes a `RoadOsm` node and two roads sharing a junction are connected by a `CONNECTED` edge. Handles connections through roundabouts and unnamed segments.
+Transforms the junction graph into a dual (named-road) graph. Each named road becomes a `RoadOsm` node, and two roads that share a junction are connected by a `CONNECTED` edge. Connections through roundabouts and unnamed segments are handled.
 
 ```shell
-python "Dual Graph (Named-Road).py" -n bolt://localhost:7687 -u neo4j -p password
+python "Creation of Dual Graph.py" -n bolt://localhost:7687 -u neo4j -p <password>
 ```
-
-| Parameter | Description |
-|-----------|-------------|
-| `-n` | Neo4j bolt URL |
-| `-u` | Neo4j username |
-| `-p` | Neo4j password |
-
-**Output:** `RoadOsm` nodes with segment counts and total length, `CONNECTED` edges with weight.
 
 ---
 
 ## 4. Compute Centrality
 
-Runs graph-theoretic centrality metrics on the dual graph using Neo4j GDS projections and writes the results back as node properties.
+Runs centrality metrics on the dual graph with Neo4j GDS and writes them back as node properties: `Pagerank`, `Betweenness`, `Degree` on `RoadOsm` nodes, and junction betweenness `bc` on `RoadJunction` nodes, which is used to choose the closed segments.
 
 ```shell
-python compute_centrality.py -n bolt://localhost:7687 -u neo4j -p password
+python "Compute Centrality.py" -n bolt://localhost:7687 -u neo4j -p <password>
+```
+
+---
+
+## 5. Export the Graph (last step that needs Neo4j)
+
+Reads the complete graph of a city (nodes, relationships, all properties) and saves it to `ESWA/rerun/graph_exports/<city>/`. The database is only read, never modified. Start the database of the city in Neo4j Desktop first.
+
+```shell
+python ESWA/rerun/export_neo4j_city.py --city modena -n bolt://localhost:7687 -u neo4j -p <password>
+```
+
+`run_city.py` (Step 6) runs this export automatically if it has not been done yet.
+
+---
+
+## 6. Disruption Simulation
+
+```shell
+python ESWA/rerun/run_city.py --city modena -p <password>
+```
+
+The password is needed only if the export of Step 5 does not exist yet. The run is resumable: if it stops, the same command continues from where it stopped. Progress is written to `ESWA/rerun/results_v2/<city>/log.txt`.
+
+| Parameter | Description |
+|-----------|-------------|
+| `--city` | `modena`, `ferrara`, or `pesaro` |
+| `-n`, `-u`, `-p` | Neo4j URL, user, password (export only) |
+| `--database` | Named Neo4j database, if not the default |
+| `--workers` | Number of parallel processes |
+| `--stages` | Stages to run (default: `export,prepare,check,single,asym`) |
+| `--smoke N` | Quick test with N scenarios per stage |
+
+| Stage | What it does |
+|-------|--------------|
+| `export` | Graph export (Step 5) |
+| `prepare` | OD pairs, service access, alternatives |
+| `check` | Reproduces the baseline of an earlier Neo4j-based run, if its files are present; otherwise skipped |
+| `single` | Closes every alternative road, in 9 set-ups |
+| `asym` | Simultaneous closures of the top-k roads by PageRank and of random roads |
+
+**Simulation design:**
+
+- **OD pairs.** Every residential junction is an origin and receives a population weight: the residents of each census section are divided equally among the residential junctions for which that section is the nearest. Each origin is paired with the nearest essential service by car network distance, chosen among its three nearest services by straight-line distance. The pairs are split at random into set A (criteria) and set B (held out for validation). This gives 8,137 pairs in Modena, 8,422 in Ferrara, and 5,955 in Pesaro.
+- **Alternatives.** The top half of the named roads by dual PageRank: 769 in Modena, 594 in Ferrara, 534 in Pesaro.
+- **Closures.** A closure removes physical street segments in both directions. Roads with at most ten segments are closed entirely. For longer roads, 25% of the segments (at least ten) next to the junctions with the highest betweenness are closed. Trips whose origin or destination junction is isolated by the closure are excluded.
+- **Routing.** Shortest paths by distance with `scipy.sparse.csgraph` Dijkstra. After a closure, only the pairs whose intact path uses a closed edge are re-routed, which is exact.
+- **Simultaneous closures.** k = 5, 10, 20, 30, 50, 70, 100, against 20 random selections per k from all named roads and from the alternatives.
+- **Set-up variants (single closures).** `main` (all pairs); closure depth 10%, 50%, 100%; stress-weighted cycling costs (`cost_lts`); LTS without the sharrow rule (`lts_stored`); 30 km/h default on residential streets (`lts_zone30`); same access junction for all layers (`access_legacy`); destination chosen in each layer (`dest_layer`).
+
+---
+
+## 7. MCDM Analysis
+
+First verify the MCDM implementations against `pymcdm` (must end with `ALL CHECKS PASSED`):
+
+```shell
+python ESWA/verify_mcdm_methods.py
+```
+
+Then run the analysis:
+
+```shell
+python ESWA/rerun/analysis/mcdm_v2.py
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `-n` | Neo4j bolt URL |
-| `-u` | Neo4j username |
-| `-p` | Neo4j password |
-| `--top` | Number of top roads to display (default: 20) |
-
-**Computed metrics:** `Pagerank`, `Betweenness`, `Degree` on `RoadOsm` nodes. Junction-level `bc` (betweenness centrality) on `RoadJunction` nodes for percentage-based closure targeting.
-
----
-
-## 5. Vulnerability Analysis
-
-The disruption simulation. Selects residential-to-POI origin–destination pairs, ranks roads by PageRank, and simulates road closures, measuring accessibility loss across three routing modes: car (`driveable=true`), low-stress cycling (`bike_allowed=true AND lts≤2`, called `bike_safe` in the code), and cycling on all permitted roads (`bike_allowed=true`, called `bike_all`).
-
-```shell
-python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
-    --city modena --od-pairs 200 --top-pct 50 \
-    --closure-pct 0.25 --closure-min 10 \
-    --weight distance --unreachable-penalty 5.0 \
-    --null-iterations 5 --seed 42
-```
-
-| Parameter | Description |
-|-----------|-------------|
-| `--city` | City name (used in output filenames) |
-| `--od-pairs` | Number of OD pairs to sample (default: 200) |
-| `--top-pct` | Top X% of roads by PageRank to analyze (default: 50) |
-| `--closure-pct` | Fraction of a road's segments to close (default: 0.25) |
-| `--closure-min` | Minimum segments to close per road (default: 10) |
-| `--weight` | Edge impedance: `distance`, `time`, or `lts` (default: distance) |
-| `--unreachable-penalty` | Detour ratio for newly unreachable OD pairs (default: 5.0) |
-| `--population-csv` | ISTAT census CSV for population-weighted origins |
-| `--poi-candidates` | Nearest-POI candidates resolved by network distance (default: 3) |
-| `--null-iterations` | Random null-model iterations per k, 0 disables (default: 5) |
-| `--seed` | Random seed for reproducibility (default: 42) |
-| `--sensitivity` | 10%, 25%, 50% closure and save comparison |
-| `--od-json` | Load the OD pairs of a previous run (`*_od_pairs.json`) instead of sampling them. Guarantees identical OD pairs across runs (used for the stress-weighted robustness run). |
-
-**Analysis components:**
-
-- **One-by-one closure:** Each top road closed individually (25% of segments by junction betweenness). Measures detour ratio, POIs lost, WCC fragmentation, path overlap, compensation category, MID, and investment priority score.
-- **Simultaneous closure:** Top k roads closed together (k = 10, 20, 30, 50, 70, 100).
-- **Null model:** k random roads closed (5 iterations) for targeted vs. random comparison.
-- **Per-OD vulnerability:** Tracks which OD pairs are most frequently affected across all closures.
-
-**Key metrics:**
-
-| Metric | Description |
-|--------|-------------|
-| BIAI | Low-stress to car reachability at baseline (`bike_safe` reachable / car reachable). Called *coverage* in the paper. |
-| MID | Modal Impact Differential = low-stress detour − car detour |
-| Compensation | full / partial / none / bike_only_vulnerable / no_impact |
-| Investment Priority Score (IPS) | `pagerank × (modal_impact + pois_lost_share + wcc_penalty) × (0.5 + bike_fail)`; the heuristic benchmark of the MCDM model |
-
-**Output per city:**
-
-| File | Contents |
-|------|----------|
-| `<city>_<ts>_pct25.json` | Full results with baseline, BIAI, WCC, pooled Wilcoxon |
-| `<city>_<ts>_pct25.csv` | Per-road summary sorted by investment priority |
-| `<city>_<ts>_pct25_simultaneous.json/csv` | Simultaneous closure results |
-| `<city>_<ts>_pct25_null_model.json/csv` | Random null model (mean ± s.d.) |
-| `<city>_<ts>_pct25_od_pairs.json` | Selected OD pairs with coordinates |
-| `<city>_<ts>_pct25_od_vulnerability.csv` | Per-OD vulnerability ranking |
-
-**Runs used in the paper:**
-
-| Run | Folder |
-|-----|--------|
-| Main runs (distance cost, 25% closure) | `modena_results/`, `ferrara/`, `pesaro/` |
-| Stress-weighted cycling cost (`--weight lts`) | `lts_runs/modena/`, `lts_runs_fixed/ferrara/`, `lts_runs/pesaro/` |
-| Closure depth 10% and 50% (Modena) | `sens_runs/` |
-
-The Ferrara stress-weighted run in `lts_runs_fixed/` was repeated with `--od-json` so that it uses exactly the OD pairs of the main Ferrara run.
-
----
-
-## 6. Export Road LTS Composition
-
-Exports per-road LTS breakdown for mechanism analysis: total length, car/bike/safe-bike kilometres, and PageRank for each named road.
-
-```shell
-python export_road_lts_composition.py -n bolt://localhost:7687 -u neo4j -p password \
-    --city modena
-```
-
-**Output:** `<city>_road_lts_composition.csv` with columns `road_name, segments, total_m, car_m, bike_m, bike_safe_m, dual_pagerank`.
-
----
-
-## 7. Export for QGIS
-
-Exports road-level and OD-level data as georeferenced CSVs for spatial visualization in QGIS.
-
-```shell
-python export_qgis.py -n bolt://localhost:7687 -u neo4j -p password \
-    --city modena --output qgis_export --baseline --lts
-```
-
-| Parameter | Description |
-|-----------|-------------|
-| `--city` | City name |
-| `--output` | Output folder (default: qgis_export) |
-| `--baseline` | Export baseline edge data with LTS and driveability |
-| `--lts` | Include LTS composition |
-| `--dual` | Export dual graph nodes |
-| `--pois` | Export POI locations |
-| `--scenario` | Export a specific disruption scenario |
-
----
-
-## 8. MCDM Framework (folder `ESWA/`)
-
-Turns the per-road simulation results into a decision matrix and ranks the roads for parallel low-stress cycling infrastructure. Run all commands from the project root.
+| `--cities` | Cities to analyze (default: all three) |
+| `--primary` | Primary weighting scheme (default: `critic`) |
+| `--smaa-samples` | Number of SMAA-2 weight samples (default: 2000) |
+| `--rr-iter` | Random-deletion repetitions for the rank-reversal test (default: 200) |
 
 ### Decision model
 
 | Element | Definition |
 |---------|------------|
-| Alternatives | Roads in the top half by dual PageRank (Modena 769, Ferrara 594, Pesaro 534) |
+| Alternatives | Roads in the top half by dual PageRank |
 | C1 Network importance | Dual PageRank of the road |
-| C2 Modal impact | Largest excess detour over the three layers, capped at 1 |
-| C3 Service loss | Share of OD pairs losing access, pooled over the three layers |
-| C4 Fragmentation | Sum over layers of min(new weakly connected components / 100, 0.2) |
-| C5 Compensation failure | Ordinal score of the compensation class of the cycling layers (0, 0.5, 0.8, 1) |
+| C2 Detour | Population-weighted mean excess detour of the low-stress trips that remain reachable (set A) |
+| C3 Service loss | Population-weighted share of low-stress trips that lose access to their service (set A) |
+| C4 Fragmentation | Population share cut off from the main low-stress component, excluding junctions isolated by the closure |
+| C5 Compensation failure | max(0, H_safe − H_car), with H = adjusted detour ratio − 1 (lost trips counted with λ = 5) |
 | Weights | CRITIC (primary); entropy, CRITIC–entropy, and equal weights for sensitivity |
 | Core methods | NR-TOPSIS, VIKOR (v = 0.5), PROMETHEE II (Gaussian preference); Borda-type consensus, ties broken by NR-TOPSIS |
 | Comparison methods | TOPSIS, WSM, EDAS, MABAC, MARCOS |
-| Benchmarks | Dual PageRank, car-only MCDM, heuristic IPS |
+| Benchmarks | Dual PageRank, car-only MCDM, heuristic investment priority score (IPS) |
 
-All criteria are of benefit type. NR-TOPSIS uses fixed domain bounds: [0, 1] for C2, C3, C5, [0, 0.6] for C4, and the observed range for C1.
+All criteria are of benefit type. The NR-TOPSIS bounds are fixed on the candidate set: [0, max] for C2–C5 and the observed range for C1.
 
-### 8a. Verify the MCDM implementations
+**Analyses:**
 
-```shell
-python ESWA/verify_mcdm_methods.py
-```
+- Criteria weights; rankings of all eight methods and the consensus.
+- Rank similarity (Spearman, Kendall, WS coefficient, Kendall's W) and weighting-method comparison.
+- 30 weight scenarios, one-at-a-time weight changes, and criteria-group scenarios with criteria contribution.
+- Rank reversal, with fixed and with re-estimated weights and bounds, and under random deletion.
+- Method parameters and SMAA-2.
+- Benchmark comparison.
+- Robustness to the simulation set-up, the model choices (C5 variants, cycling layers, exclusion rule), the OD pairs (set B, five subsets of set A), and boundary roads.
 
-Compares every method with the reference library `pymcdm` on test matrices. Must end with `ALL CHECKS PASSED`.
+**Output:** `ESWA/rerun/outputs_v2/<city>/` (including `scores_rankings.csv` and `rankings_for_validation.csv`) and cross-city summaries `ESWA/rerun/outputs_v2/summary_*.csv`.
 
-### 8b. Run the MCDM analysis
+---
 
-```shell
-python ESWA/mcdm_analysis.py
-```
+## 8. Simulation Checks and Validation
 
-| Parameter | Description |
-|-----------|-------------|
-| `--primary-weights` | Primary weighting scheme (default: `critic`) |
-| `--promethee-preference` | PROMETHEE II preference function (default: `gaussian`) |
-| `--smaa-samples` | Number of SMAA-2 weight samples (default: 2000) |
-| `--rr-iter` | Random-deletion repetitions for the rank-reversal test (default: 200) |
-| `--cities` | Cities to analyze (default: all three) |
-| `--out` | Output folder (default: `ESWA/outputs`) |
-
-**Analyses:** criteria weights; rankings of all eight methods and the consensus; rank similarity (Spearman, Kendall, WS coefficient, Kendall's W); weighting-method comparison; 30 weight scenarios and one-at-a-time weight changes; criteria-group scenarios; rank reversal (worst-road deletion and random deletion); method parameters; SMAA-2; criteria contribution; benchmark comparison; robustness to the simulation set-up (stress-weighted cost, closure depth).
-
-**Output:** one folder per city in `ESWA/outputs/<city>/` and cross-city summaries `ESWA/outputs/summary_*.csv`.
-
-### 8c. Simulation-based validation (needs Neo4j)
-
-Closes the top-k roads of each ranking (consensus, NR-TOPSIS, car-only MCDM, PageRank, heuristic IPS, and random selections) simultaneously and measures accessibility on all three layers. It loads the exact OD pairs and settings of the main run and first checks that the PageRank closures reproduce the original simultaneous results.
+Run after Step 7, because the validation uses the rankings produced there.
 
 ```shell
-python ESWA/validate_topk_closures.py -n bolt://localhost:7687 -u neo4j -p password --city modena
+python ESWA/rerun/analysis/sim_checks.py --city modena
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `--city` | `modena`, `ferrara`, or `pesaro` (the city's graph must be loaded in Neo4j) |
-| `--k` | Values of k (default: 5 10 20 30 50) |
-| `--random-iter` | Random selections per k (default: 10) |
-| `--seed` | Random seed (default: 42) |
+| `--city` | City to analyze |
+| `--what` | Analyses to run (default: `stats,asym,validate,invest,bypass`) |
 
-**Output:** `validation_topk_closures.csv`, `validation_topk_summary.csv`, and `validation_reproducibility.csv` in `ESWA/outputs/<city>/`.
+| Analysis | What it does |
+|----------|--------------|
+| `stats` | Network statistics, coverage, connectivity, and route overlap of the layers |
+| `asym` | Targeted vs random simultaneous closures, with penalty λ = 2–20 |
+| `validate` | Closes the top-k roads (k = 5–50) of each ranking and of 20 random selections; accessibility measured on the held-out set B; paired bootstrap confidence intervals |
+| `bypass` | Adds a parallel LTS 1 route (1.3 × segment length; 1.1 and 1.5 as sensitivity) along each top-20 road and 200 random alternatives, closes the road, and measures the avoided low-stress harm on set B |
+| `invest` | Upgrades the top-k roads of each ranking to LTS 1 and measures the share of trips that gain low-stress access |
+
+---
+
+## 9. Figures
+
+```shell
+python ESWA/rerun/analysis/plot_v2.py
+```
+
+Writes all figures of the paper (PNG and PDF) to `ESWA/rerun/figures_v2/`.
+
+---
+
+## Optional Exports
+
+**Road LTS composition** (per-road length by layer and PageRank):
+
+```shell
+python Export_Road_LTS_Composition.py -n bolt://localhost:7687 -u neo4j -p <password> --city modena
+```
+
+**QGIS** (georeferenced CSVs for maps):
+
+```shell
+python Export_QGIS.py -n bolt://localhost:7687 -u neo4j -p <password> \
+    --city modena --output qgis_export --baseline --lts
+```
 
 ---
 
 ## Example: Three Italian Cities
 
-**Modena** (5 km radius, ~95k edges):
 ```shell
-python "Create Graph.py" -x 44.645885 -y 10.9255707 -d 5 \
-    -n bolt://localhost:7687 -u neo4j -p password -f modena
-```
+# Build the graphs (Steps 1–4), once per city
+python "Create Graph.py" -x 44.645885 -y 10.9255707 -d 5 -n bolt://localhost:7687 -u neo4j -p <password> -f modena
+python "Create Graph.py" -x 44.835888 -y 11.619787  -d 5 -n bolt://localhost:7687 -u neo4j -p <password> -f ferrara
+python "Create Graph.py" -x 43.910156 -y 12.913389  -d 5 -n bolt://localhost:7687 -u neo4j -p <password> -f pesaro
 
-**Ferrara** (5 km radius, ~83k edges):
-```shell
-python "Create Graph.py" -x 44.835888 -y 11.619787 -d 5 \
-    -n bolt://localhost:7687 -u neo4j -p password -f ferrara
-```
-
-**Pesaro** (5 km radius, ~64k edges):
-```shell
-python "Create Graph.py" -x 43.910156 -y 12.913389 -d 5 \
-    -n bolt://localhost:7687 -u neo4j -p password -f pesaro
-```
-
-Full vulnerability analysis for all three:
-```shell
+# Simulation (start the database of each city before its run)
 for city in modena ferrara pesaro; do
-    python vulnerability_analysis.py -n bolt://localhost:7687 -u neo4j -p password \
-        --city $city --od-pairs 200 --top-pct 50 --closure-pct 0.25
+    python ESWA/rerun/run_city.py --city $city -p <password>
 done
-```
 
-MCDM analysis and validation for all three:
-```shell
+# MCDM, validation, figures (offline)
 python ESWA/verify_mcdm_methods.py
-python ESWA/mcdm_analysis.py
+python ESWA/rerun/analysis/mcdm_v2.py
 for city in modena ferrara pesaro; do
-    python ESWA/validate_topk_closures.py -n bolt://localhost:7687 -u neo4j -p password --city $city
+    python ESWA/rerun/analysis/sim_checks.py --city $city
 done
+python ESWA/rerun/analysis/plot_v2.py
 ```
