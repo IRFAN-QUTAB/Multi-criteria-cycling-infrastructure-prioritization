@@ -1,4 +1,4 @@
-"""Worker-process side of the scenario runner (spawn-safe on Windows)."""
+
 
 import pickle
 
