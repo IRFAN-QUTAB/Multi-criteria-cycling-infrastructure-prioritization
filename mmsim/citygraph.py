@@ -1,15 +1,3 @@
-"""
-Load a city exported by export_neo4j_city.py into numpy arrays.
-
-Everything the offline simulation needs is taken from the export:
-  junctions  RoadJunction nodes (id, lat, lon, car_bc)
-  edges      active ROUTE edges between junctions, with mode flags, LTS
-             (recomputed for the chosen variant), raw tags and length
-  roads      RoadOsm nodes (name, dual_pagerank) and the ROUTE edges whose
-             name equals the road name
-  pois       essential services (node POIs and polygon POIs, the latter
-             located by their member nodes)
-"""
 
 import ast
 import gzip
