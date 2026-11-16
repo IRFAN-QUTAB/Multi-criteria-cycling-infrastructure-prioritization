@@ -1,25 +1,4 @@
-"""
-Accessibility metrics from the raw scenario outputs of run_city.py.
 
-For a scenario s, a layer m and a set of OD pairs S (A, B or AB):
-
-  R0      pairs of S reachable at baseline in m, with a positive cost
-  X       pairs of R0 whose origin or destination junction is cut out by
-          the closure itself (rule "iso": every edge of the junction in m is
-          closed; rule "inc": the junction touches a closed edge; rule
-          "none": nothing excluded = Neo4j version). These trips start or end
-          inside the works and are reported separately.
-  V       R0 minus X (valid pairs)
-  lost    pairs of V that become unreachable
-  L       |lost| / |V|                         service loss share
-  e       mean of (r - 1) over V minus lost    conditional excess detour
-  adj     mean over V of r~ (r~ = P if lost)   adjusted detour, baseline-
-                                               reachable pairs only
-  legacy  earlier definition of the adjusted detour: mean over all pairs of S, 1 for pairs
-          unreachable at baseline, P for lost, no exclusion
-  cut     population share of the layer's main component that is
-          disconnected from it, closure junctions excluded (C4)
-"""
 
 import glob
 import json
