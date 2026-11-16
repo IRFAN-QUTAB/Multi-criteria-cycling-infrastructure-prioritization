@@ -116,19 +116,7 @@ python "Compute Centrality.py" -n bolt://localhost:7687 -u neo4j -p <password>
 
 ---
 
-## 5. Export the Graph (last step that needs Neo4j)
-
-Reads the complete graph of a city (nodes, relationships, all properties) and saves it to `ESWA/rerun/graph_exports/<city>/`. The database is only read, never modified. Start the database of the city in Neo4j Desktop first.
-
-```shell
-python ESWA/rerun/export_neo4j_city.py --city modena -n bolt://localhost:7687 -u neo4j -p <password>
-```
-
-`run_city.py` (Step 6) runs this export automatically if it has not been done yet.
-
----
-
-## 6. Disruption Simulation
+## 5. Disruption Simulation
 
 ```shell
 python ESWA/rerun/run_city.py --city modena -p <password>
@@ -164,7 +152,7 @@ The password is needed only if the export of Step 5 does not exist yet. The run 
 
 ---
 
-## 7. MCDM Analysis
+## 6. MCDM Analysis
 
 First verify the MCDM implementations against `pymcdm` (must end with `ALL CHECKS PASSED`):
 
@@ -216,7 +204,7 @@ All criteria are of benefit type. The NR-TOPSIS bounds are fixed on the candidat
 
 ---
 
-## 8. Simulation Checks and Validation
+## 7. Simulation Checks and Validation
 
 Run after Step 7, because the validation uses the rankings produced there.
 
@@ -239,33 +227,6 @@ python ESWA/rerun/analysis/sim_checks.py --city modena
 
 ---
 
-## 9. Figures
-
-```shell
-python ESWA/rerun/analysis/plot_v2.py
-```
-
-Writes all figures of the paper (PNG and PDF) to `ESWA/rerun/figures_v2/`.
-
----
-
-## Optional Exports
-
-**Road LTS composition** (per-road length by layer and PageRank):
-
-```shell
-python Export_Road_LTS_Composition.py -n bolt://localhost:7687 -u neo4j -p <password> --city modena
-```
-
-**QGIS** (georeferenced CSVs for maps):
-
-```shell
-python Export_QGIS.py -n bolt://localhost:7687 -u neo4j -p <password> \
-    --city modena --output qgis_export --baseline --lts
-```
-
----
-
 ## Example: Three Italian Cities
 
 ```shell
@@ -273,17 +234,3 @@ python Export_QGIS.py -n bolt://localhost:7687 -u neo4j -p <password> \
 python "Create Graph.py" -x 44.645885 -y 10.9255707 -d 5 -n bolt://localhost:7687 -u neo4j -p <password> -f modena
 python "Create Graph.py" -x 44.835888 -y 11.619787  -d 5 -n bolt://localhost:7687 -u neo4j -p <password> -f ferrara
 python "Create Graph.py" -x 43.910156 -y 12.913389  -d 5 -n bolt://localhost:7687 -u neo4j -p <password> -f pesaro
-
-# Simulation (start the database of each city before its run)
-for city in modena ferrara pesaro; do
-    python ESWA/rerun/run_city.py --city $city -p <password>
-done
-
-# MCDM, validation, figures (offline)
-python ESWA/verify_mcdm_methods.py
-python ESWA/rerun/analysis/mcdm_v2.py
-for city in modena ferrara pesaro; do
-    python ESWA/rerun/analysis/sim_checks.py --city $city
-done
-python ESWA/rerun/analysis/plot_v2.py
-```
